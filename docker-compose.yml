@@ -1,0 +1,79 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: mlsd_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+    restart: unless-stopped
+
+  stub_llm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlsd_stub_llm
+    command: ["uvicorn", "stub_llm.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "8001:8001"
+    environment:
+      - STUB_DELAY_SECONDS=0.05
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlsd_api
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      stub_llm:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - STUB_LLM_URL=http://stub_llm:8001
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "worker.worker"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      stub_llm:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - STUB_LLM_URL=http://stub_llm:8001
+    restart: unless-stopped
