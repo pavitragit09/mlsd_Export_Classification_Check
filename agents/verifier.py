@@ -51,9 +51,12 @@ class VerifierAgent:
 
         # Audit each citation against retrieved corpus text
         for citation in citations:
-            cit_lower = citation.lower()
-            # Extract key terms from citation (e.g. 9617, 'section xv', 'gri 1')
-            if any(term in retrieved_corpus_text for term in ["9617", "7323", "9608", "gri 1", "gri 3", "section xv"]):
+            cit_clean = citation.lower().replace("-", " ").replace(":", " ")
+            cit_words = [
+                w for w in cit_clean.split()
+                if len(w) >= 3 and w not in ["heading", "rule", "note", "section", "chapter", "the", "for"]
+            ]
+            if cit_words and any(w in retrieved_corpus_text for w in cit_words):
                 verified_citations.append(citation)
             else:
                 unverified_citations.append(citation)
@@ -72,8 +75,9 @@ class VerifierAgent:
         # Check citation grounding failure
         if unverified_citations and retry_allowed:
             logger.warning(f"Verification caught unverified citations: {unverified_citations}. Triggering secondary search...")
-            # Secondary search strategy: Look up specific heading or chapter notes directly
-            extra_search = search_corpus(query=f"Heading {resolved_heading}", collection="fulltext", top_k=2)
+            # Secondary search strategy: Search specifically for the missing citation clause
+            missing_query = unverified_citations[0] if unverified_citations else f"Heading {resolved_heading}"
+            extra_search = search_corpus(query=missing_query, collection="fulltext", top_k=3)
             retrieved_passages.extend(extra_search)
             # Re-verify once
             return self.verify(proposal, retrieved_passages, retry_allowed=False)
