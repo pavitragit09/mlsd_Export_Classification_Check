@@ -6,7 +6,7 @@ import sys
 import time
 from typing import Any, Dict
 from redis import Redis
-from rq import Worker, Queue, Connection
+from rq import Worker, Queue
 from common.config import settings
 from common.logging import logger
 from common.telemetry import set_correlation_id, trace_store
@@ -104,10 +104,9 @@ def start_worker() -> None:
         logger.critical(f"Failed connecting to Redis: {e}")
         sys.exit(1)
 
-    with Connection(redis_conn):
-        worker = Worker([settings.QUEUE_NAME])
-        logger.info(f"Worker initialized and listening on queue '{settings.QUEUE_NAME}'...")
-        worker.work()
+    worker = Worker([settings.QUEUE_NAME], connection=redis_conn)
+    logger.info(f"Worker initialized and listening on queue '{settings.QUEUE_NAME}'...")
+    worker.work()
 
 
 if __name__ == "__main__":

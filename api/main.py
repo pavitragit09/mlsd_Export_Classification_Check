@@ -142,7 +142,18 @@ async def submit_run(run_req: RunRequest) -> RunSubmitResponse:
 def get_run_status(run_id: str) -> RunStatusResponse:
     """Retrieves status and recommendation result for a specific run."""
     trace = trace_store.get_trace(run_id)
-    if not trace:
+    job_result = None
+
+    # Check Redis queue for completed job result (enables multi-container synchronization)
+    try:
+        q = _get_redis_queue()
+        job = q.fetch_job(run_id)
+        if job and job.is_finished and isinstance(job.result, dict):
+            job_result = job.result
+    except Exception as e:
+        logger.warning(f"Could not check Redis job status: {e}")
+
+    if not trace and not job_result:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found.")
 
     res_heading = None
@@ -150,10 +161,33 @@ def get_run_status(run_id: str) -> RunStatusResponse:
     export_policy = None
     gri_rule = "GRI 1"
 
-    # If completed, extract from citations/basis or verification
-    if trace.get("status") == "done":
-        # Check verified citations
-        for cit in trace.get("citations", []):
+    # If job finished in worker, prefer the authoritative job result
+    if job_result:
+        route = job_result.get("route")
+        basis = job_result.get("basis")
+        citations = job_result.get("citations", [])
+        status_val = "done"
+        res_heading = job_result.get("resolved_heading")
+        tariff_code = job_result.get("tariff_code")
+        export_policy = job_result.get("export_policy")
+        gri_rule = job_result.get("gri_rule", "GRI 1")
+        prompt_ver = job_result.get("prompt_version", settings.PROMPT_VERSION)
+        corr_id = job_result.get("correlation_id", run_id)
+        created_at = trace.get("created_at") if trace else None
+        completed_at = trace.get("updated_at") if trace else None
+    else:
+        route = trace.get("route")
+        basis = trace.get("basis")
+        citations = trace.get("citations", [])
+        status_val = trace.get("status", "queued")
+        prompt_ver = trace.get("prompt_version", settings.PROMPT_VERSION)
+        corr_id = trace.get("correlation_id", run_id)
+        created_at = trace.get("created_at")
+        completed_at = trace.get("updated_at")
+
+    # If completed, extract from citations/basis if not set
+    if status_val == "done" and not res_heading:
+        for cit in citations:
             if "9617" in cit:
                 res_heading = "9617"
                 tariff_code = "9617 00 11"
@@ -168,19 +202,19 @@ def get_run_status(run_id: str) -> RunStatusResponse:
                 export_policy = "Free"
 
     return RunStatusResponse(
-        run_id=trace["run_id"],
-        correlation_id=trace["correlation_id"],
-        status=trace["status"],
-        route=trace["route"],
-        basis=trace["basis"],
+        run_id=run_id,
+        correlation_id=corr_id,
+        status=status_val,
+        route=route,
+        basis=basis,
         resolved_heading=res_heading,
         tariff_code=tariff_code,
         gri_rule=gri_rule,
         export_policy=export_policy,
-        citations=trace.get("citations", []),
-        prompt_version=trace.get("prompt_version", settings.PROMPT_VERSION),
-        created_at=trace.get("created_at"),
-        completed_at=trace.get("updated_at"),
+        citations=citations,
+        prompt_version=prompt_ver,
+        created_at=created_at,
+        completed_at=completed_at,
     )
 
 
