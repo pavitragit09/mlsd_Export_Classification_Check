@@ -46,8 +46,8 @@ class QuarantineStore:
         correlation_id: str = "unknown",
     ) -> int:
         now = datetime.now(timezone.utc).isoformat()
-        payload_str = json.dumps(raw_payload) if not isinstance(raw_payload, str) else raw_payload
-        errors_str = json.dumps(validation_errors)
+        payload_str = json.dumps(raw_payload, default=str) if not isinstance(raw_payload, str) else raw_payload
+        errors_str = json.dumps(validation_errors, default=str)
 
         logger.warning(
             f"Quarantining rejected request [corr_id={correlation_id}]: {validation_errors}"

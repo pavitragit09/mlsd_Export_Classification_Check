@@ -46,6 +46,21 @@ async def correlation_id_middleware(request: Request, call_next):
     return response
 
 
+def _sanitize_validation_errors(raw_errors: list) -> list:
+    sanitized = []
+    for err in raw_errors:
+        clean = {}
+        for k, v in err.items():
+            if k == "ctx" and isinstance(v, dict):
+                clean[k] = {ck: str(cv) for ck, cv in v.items()}
+            elif isinstance(v, (str, int, float, bool, list, type(None))):
+                clean[k] = v
+            else:
+                clean[k] = str(v)
+        sanitized.append(clean)
+    return sanitized
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
@@ -61,19 +76,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     except Exception:
         body = "<Unparseable body>"
 
-    errors = exc.errors()
+    clean_errors = _sanitize_validation_errors(exc.errors())
     quarantine_store.quarantine(
         raw_payload=body,
-        validation_errors=errors,
+        validation_errors=clean_errors,
         correlation_id=corr_id,
     )
     QUARANTINE_TOTAL.inc()
 
-    logger.warning(f"Request validation failed and was quarantined [corr_id={corr_id}]: {errors}")
+    logger.warning(f"Request validation failed and was quarantined [corr_id={corr_id}]: {clean_errors}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
-            "detail": errors,
+            "detail": clean_errors,
             "message": "Request failed schema/cross-field validation and was quarantined. No job was enqueued.",
             "correlation_id": corr_id,
         },
@@ -224,6 +239,22 @@ def get_run_trace(run_id: str) -> Dict[str, Any]:
     trace = trace_store.get_trace(run_id)
     if not trace:
         raise HTTPException(status_code=404, detail=f"Trace for run {run_id} not found.")
+
+    # If local trace is still queued, check Redis for finished job result
+    if trace.get("status") != "done":
+        try:
+            q = _get_redis_queue()
+            job = q.fetch_job(run_id)
+            if job and job.is_finished and isinstance(job.result, dict):
+                res = job.result
+                trace["status"] = "done"
+                trace["route"] = res.get("route", trace.get("route"))
+                trace["basis"] = res.get("basis", trace.get("basis"))
+                trace["citations"] = res.get("citations", trace.get("citations"))
+                trace["prompt_version"] = res.get("prompt_version", trace.get("prompt_version"))
+        except Exception:
+            pass
+
     return trace
 
 

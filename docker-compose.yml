@@ -51,6 +51,8 @@ services:
       - STUB_LLM_URL=http://stub_llm:8001
       - API_HOST=0.0.0.0
       - API_PORT=8000
+    volumes:
+      - shared_data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
@@ -64,6 +66,8 @@ services:
       context: .
       dockerfile: Dockerfile
     command: ["python", "-m", "worker.worker"]
+    volumes:
+      - shared_data:/app/data
     depends_on:
       redis:
         condition: service_healthy
@@ -77,3 +81,6 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - STUB_LLM_URL=http://stub_llm:8001
     restart: unless-stopped
+
+volumes:
+  shared_data:
