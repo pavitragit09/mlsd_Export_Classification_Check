@@ -31,6 +31,13 @@ class IndexManager:
 
         self._load()
 
+    def _load(self) -> None:
+        ft_idx_path = os.path.join(self.index_dir, "fulltext.index")
+        ft_meta_path = os.path.join(self.index_dir, "fulltext_meta.json")
+        hd_idx_path = os.path.join(self.index_dir, "headings.index")
+        hd_meta_path = os.path.join(self.index_dir, "headings_meta.json")
+        manifest_path = os.path.join(self.index_dir, "manifest.json")
+
         if not os.path.exists(ft_idx_path) or not os.path.exists(hd_idx_path):
             logger.info("Indices not found on disk. Automatically running ingestion pipeline...")
             try:
