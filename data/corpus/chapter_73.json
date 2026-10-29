@@ -1,0 +1,63 @@
+[
+  {
+    "clause_id": "CH73-NOTE-1",
+    "type": "note",
+    "chapter": "73",
+    "title": "Chapter 73 Note 1 Definition of Cast Iron",
+    "text": "In this Chapter, the expression 'cast iron' applies to products obtained by casting in which iron predominates by weight over each of the other elements and which do not comply with the chemical composition of steel as defined in Note 1(d) to Chapter 72.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "CH73-NOTE-2",
+    "type": "note",
+    "chapter": "73",
+    "title": "Chapter 73 Note 2 Definition of Wire",
+    "text": "In this Chapter, the word 'wire' means hot or cold-formed products of any cross-sectional shape, of which no cross-sectional dimension exceeds 16 mm.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "HD7301",
+    "type": "heading",
+    "chapter": "73",
+    "heading": "7301",
+    "title": "Sheet piling of iron or steel, whether or not drilled, punched or made from assembled elements; welded angles, shapes and sections, of iron or steel",
+    "text": "Heading 7301 covers sheet piling of iron or steel, whether or not drilled, punched or assembled.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "HD7304",
+    "type": "heading",
+    "chapter": "73",
+    "heading": "7304",
+    "title": "Tubes, pipes and hollow profiles, seamless, of iron (other than cast iron) or steel",
+    "text": "Heading 7304 covers seamless tubes, pipes and hollow profiles of iron or steel.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "HD7318",
+    "type": "heading",
+    "chapter": "73",
+    "heading": "7318",
+    "title": "Screws, bolts, nuts, coach screws, screw hooks, rivets, cotters, cotter-pins, washers (including spring washers) and similar articles, of iron or steel",
+    "text": "Heading 7318 covers fasteners, threaded and non-threaded articles of iron or steel including screws, bolts, and nuts.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "HD7323",
+    "type": "heading",
+    "chapter": "73",
+    "heading": "7323",
+    "title": "Table, kitchen or other household articles and parts thereof, of iron or steel; iron or steel wool; pot scourers and scouring or polishing pads, gloves and the like, of iron or steel",
+    "text": "Heading 7323 covers table, kitchen or other household articles and parts thereof, of iron or steel; iron or steel wool; pot scourers and scouring or polishing pads, gloves and the like, of iron or steel. Subheadings include: 7323 10 00 (Iron or steel wool; pot scourers), 7323 91 (Of cast iron, not enamelled), 7323 92 00 (Of cast iron, enamelled), 7323 93 (Of stainless steel: 7323 93 10 Pressure cookers, 7323 93 90 Other), 7323 94 (Of iron or steel, enamelled: Utensils, Ghamellas), 7323 99 (Other: Utensils of galvanised iron, other utensils).",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  },
+  {
+    "clause_id": "HD7326",
+    "type": "heading",
+    "chapter": "73",
+    "heading": "7326",
+    "title": "Other articles of iron or steel",
+    "text": "Heading 7326 covers other articles of iron or steel, forged or stamped, but not further worked, and general unspecified steel articles.",
+    "source_doc": "CBIC Customs Tariff Chapter 73"
+  }
+]

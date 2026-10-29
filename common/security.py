@@ -30,6 +30,31 @@ DISCLAIMER = (
 )
 
 
+SENSITIVE_PATTERNS = [
+    # API key query parameters: ?key=... or &key=... or api_key=...
+    (r"(?i)([\?&](?:key|api_key|apikey)=)[^\s&\"'>]+", r"\1[REDACTED]"),
+    # Headers like x-goog-api-key: ..., Authorization: Bearer ...
+    (r"(?i)(x-goog-api-key\s*[:=]\s*)[^\s,;\"']+", r"\1[REDACTED]"),
+    (r"(?i)(Authorization\s*[:=]\s*(?:Bearer\s+)?)[^\s,;\"']+", r"\1[REDACTED]"),
+    # Specific API key formats: Google AIza..., Groq gsk_..., OpenAI sk-...
+    (r"AIza[0-9A-Za-z\-_]{20,}", "[REDACTED_API_KEY]"),
+    (r"gsk_[0-9A-Za-z\-_]{16,}", "[REDACTED_API_KEY]"),
+    (r"sk-[0-9A-Za-z\-_]{16,}", "[REDACTED_API_KEY]"),
+    # General secret / token parameters
+    (r"(?i)((?:password|secret|token)\s*[:=]\s*)[^\s,;\"']+", r"\1[REDACTED]"),
+]
+
+
+def redact_sensitive_text(text: str) -> str:
+    """Redacts API keys, credentials, and sensitive tokens from strings."""
+    if not isinstance(text, str):
+        return text
+    sanitized = text
+    for pattern, repl in SENSITIVE_PATTERNS:
+        sanitized = re.sub(pattern, repl, sanitized)
+    return sanitized
+
+
 def inspect_and_sanitize_input(text: str) -> Tuple[str, bool]:
     """
     Inspects input text for prompt injection patterns.
@@ -52,8 +77,9 @@ def filter_model_output(output_text: str) -> str:
     """
     Enforces non-filing and non-legal determination constraints.
     Replaces any claims of filing with standard non-filing guidance.
+    Also redacts any sensitive keys or credentials.
     """
-    filtered = output_text
+    filtered = redact_sensitive_text(output_text)
     for pattern in PROHIBITED_OUTPUT_PATTERNS:
         filtered = re.sub(
             pattern,

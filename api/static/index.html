@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export Classification Check Service</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-hover: #1e40af;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --badge-bg: #f1f5f9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); line-height: 1.5; padding: 2rem 1rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+    h1 { font-size: 1.875rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-muted); font-size: 0.95rem; }
+    .disclaimer-banner {
+      background-color: #fef3c7;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+    .example-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      border: 1px solid transparent;
+    }
+    .btn-example { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+    .btn-example:hover { background: #c7d2fe; }
+    .btn-primary { background: var(--primary); color: white; width: 100%; padding: 0.75rem; font-size: 1rem; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; }
+    .help-text { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    textarea, input[type="text"], select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+    textarea:focus, input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
+    }
+    .materials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 400;
+      cursor: pointer;
+      background: var(--bg);
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .checkbox-label input { cursor: pointer; }
+    .status-panel { display: none; margin-top: 1.5rem; }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-queued { background: #e0f2fe; color: #0369a1; }
+    .status-running { background: #fef3c7; color: #b45309; }
+    .status-done { background: #dcfce7; color: #15803d; }
+    .status-failed { background: #fee2e2; color: #b91c1c; }
+    .route-clear-for-filing { color: var(--success); font-weight: 700; }
+    .route-specialist-classification-review { color: var(--warning); font-weight: 700; }
+    .route-seek-product-clarification { color: #0284c7; font-weight: 700; }
+    .grid-results {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    @media (max-width: 600px) { .grid-results { grid-template-columns: 1fr; } }
+    .res-box { background: var(--bg); padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border); }
+    .res-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .res-value { font-size: 1.05rem; font-weight: 600; margin-top: 0.2rem; }
+    .citations-list { margin-top: 0.5rem; padding-left: 1.25rem; font-size: 0.9rem; }
+    .citations-list li { margin-bottom: 0.25rem; }
+    .trace-link { display: inline-block; margin-top: 1rem; color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+    .trace-link:hover { text-decoration: underline; }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #f87171;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Export Classification Check Service</h1>
+      <p class="subtitle">Multi-Agent HS Tariff & Export Policy Audit Engine | Chapters 73 & 96 | GRI 1–6</p>
+    </header>
+
+    <div class="disclaimer-banner">
+      <strong>LEGAL POLICY NOTICE:</strong> PROPOSAL ONLY. This service NEVER files a customs declaration. All tariff classifications and policy checks are preliminary evidence-grounded proposals subject to audit by a licensed customs broker.
+    </div>
+
+    <div class="card">
+      <div class="card-title">Quick Test Scenarios</div>
+      <div class="example-buttons">
+        <button type="button" class="btn btn-example" onclick="loadExample('flask')">Flask (Heading 9617 Benchmark)</button>
+        <button type="button" class="btn btn-example" onclick="loadExample('battery')">Lithium Battery (Out-of-Scope Ch 85)</button>
+        <button type="button" class="btn btn-example" onclick="loadExample('invalid')">Malformed Input (Quarantine 422)</button>
+      </div>
+
+      <form id="classifyForm" onsubmit="submitRun(event)">
+        <div class="form-group">
+          <label for="description">Product Description *</label>
+          <div class="help-text">Detailed commercial description of the product (10-500 characters).</div>
+          <textarea id="description" name="description" rows="3" required placeholder="e.g. Stainless steel vacuum flask with a moulded plastic outer body."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Declared Constituent Materials *</label>
+          <div class="help-text">Select materials comprising the item (must align with description).</div>
+          <div class="materials-grid" id="materialsGrid">
+            <!-- Dynamically populated or static list -->
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="stainless_steel"> Stainless Steel</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="steel"> Steel</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="iron"> Iron</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="plastic"> Plastic</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="glass"> Glass</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="rubber"> Rubber</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="wood"> Wood</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="ceramic"> Ceramic</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="copper"> Copper</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="aluminium"> Aluminium</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="composite"> Composite</label>
+            <label class="checkbox-label"><input type="checkbox" name="materials" value="other"> Other</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="intended_use">Intended Use (Optional)</label>
+          <input type="text" id="intended_use" name="intended_use" placeholder="e.g. Beverage thermal insulation for household/travel use">
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary">Submit for Classification Check</button>
+      </form>
+    </div>
+
+    <div id="statusCard" class="card status-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="card-title" style="margin-bottom: 0;">Classification Proposal & Audit Result</div>
+        <span id="runStatusBadge" class="status-badge status-queued">Queued</span>
+      </div>
+
+      <div id="loadingIndicator" style="display: none; padding: 1.5rem; text-align: center; color: var(--text-muted);">
+        Processing multi-agent pipeline (Boundary Validation &rarr; FAISS Retrieval &rarr; Classifier Agent &rarr; Verifier Audit)...
+      </div>
+
+      <div id="resultContent" style="display: none;">
+        <div class="grid-results">
+          <div class="res-box">
+            <div class="res-label">Workflow Decision Route</div>
+            <div class="res-value" id="resRoute">-</div>
+          </div>
+          <div class="res-box">
+            <div class="res-label">Resolved Heading & Tariff Code</div>
+            <div class="res-value" id="resHeadingCode">-</div>
+          </div>
+          <div class="res-box">
+            <div class="res-label">GRI Rule Applied</div>
+            <div class="res-value" id="resGri">-</div>
+          </div>
+          <div class="res-box">
+            <div class="res-label">DGFT Export Policy</div>
+            <div class="res-value" id="resPolicy">-</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <div class="res-label">Legal Reasoning & Classification Basis</div>
+          <p id="resBasis" style="margin-top: 0.25rem; font-size: 0.95rem;"></p>
+        </div>
+
+        <div class="form-group">
+          <div class="res-label">Statutory Citations</div>
+          <ul id="resCitations" class="citations-list"></ul>
+        </div>
+
+        <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+          <a id="traceLink" href="#" target="_blank" class="trace-link">&rarr; View Full End-to-End Audit Trace (JSON)</a>
+        </div>
+      </div>
+
+      <div id="errorContent" class="alert-error" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    let pollInterval = null;
+
+    function loadExample(type) {
+      const desc = document.getElementById("description");
+      const use = document.getElementById("intended_use");
+      const checkboxes = document.querySelectorAll('input[name="materials"]');
+      checkboxes.forEach(cb => cb.checked = false);
+
+      if (type === "flask") {
+        desc.value = "Stainless steel vacuum flask with a moulded plastic outer body.";
+        use.value = "Thermal beverage insulation for travel and home use";
+        ["stainless_steel", "plastic"].forEach(val => {
+          const el = document.querySelector(`input[name="materials"][value="${val}"]`);
+          if (el) el.checked = true;
+        });
+      } else if (type === "battery") {
+        desc.value = "Rechargeable lithium battery pack in plastic casing for power tools.";
+        use.value = "Portable battery supply for power tools";
+        ["plastic"].forEach(val => {
+          const el = document.querySelector(`input[name="materials"][value="${val}"]`);
+          if (el) el.checked = true;
+        });
+      } else if (type === "invalid") {
+        desc.value = "Flask"; // Too short (< 10 chars)
+        use.value = "";
+      }
+    }
+
+    async function submitRun(e) {
+      e.preventDefault();
+      if (pollInterval) clearInterval(pollInterval);
+
+      const submitBtn = document.getElementById("submitBtn");
+      const statusCard = document.getElementById("statusCard");
+      const loading = document.getElementById("loadingIndicator");
+      const result = document.getElementById("resultContent");
+      const errorDiv = document.getElementById("errorContent");
+      const badge = document.getElementById("runStatusBadge");
+
+      submitBtn.disabled = true;
+      statusCard.style.display = "block";
+      loading.style.display = "block";
+      result.style.display = "none";
+      errorDiv.style.display = "none";
+      badge.className = "status-badge status-queued";
+      badge.textContent = "Submitting...";
+
+      const desc = document.getElementById("description").value;
+      const intendedUse = document.getElementById("intended_use").value || null;
+      const selectedMaterials = Array.from(document.querySelectorAll('input[name="materials"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        description: desc,
+        materials: selectedMaterials,
+        intended_use: intendedUse
+      };
+
+      try {
+        const resp = await fetch("/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (resp.status === 202) {
+          const data = await resp.json();
+          badge.className = "status-badge status-running";
+          badge.textContent = "Processing";
+          pollRun(data.run_id);
+        } else if (resp.status === 422) {
+          const errData = await resp.json();
+          loading.style.display = "none";
+          errorDiv.style.display = "block";
+          badge.className = "status-badge status-failed";
+          badge.textContent = "Quarantined (422)";
+          errorDiv.innerHTML = `<strong>Data Contract Validation Error:</strong> ${errData.message || "Request was quarantined"}<br><br><pre style="white-space: pre-wrap; font-size: 0.8rem;">${JSON.stringify(errData.detail, null, 2)}</pre>`;
+          submitBtn.disabled = false;
+        } else {
+          throw new Error(`Server returned HTTP ${resp.status}`);
+        }
+      } catch (err) {
+        loading.style.display = "none";
+        errorDiv.style.display = "block";
+        badge.className = "status-badge status-failed";
+        badge.textContent = "Error";
+        errorDiv.textContent = `Submission error: ${err.message}`;
+        submitBtn.disabled = false;
+      }
+    }
+
+    function pollRun(runId) {
+      const badge = document.getElementById("runStatusBadge");
+      const loading = document.getElementById("loadingIndicator");
+      const result = document.getElementById("resultContent");
+      const errorDiv = document.getElementById("errorContent");
+      const submitBtn = document.getElementById("submitBtn");
+
+      pollInterval = setInterval(async () => {
+        try {
+          const resp = await fetch(`/runs/${runId}`);
+          if (!resp.ok) return;
+
+          const data = await resp.json();
+          badge.textContent = data.status.toUpperCase();
+
+          if (data.status === "done" || data.status === "failed") {
+            clearInterval(pollInterval);
+            submitBtn.disabled = false;
+            loading.style.display = "none";
+            badge.className = `status-badge status-${data.status}`;
+
+            if (data.status === "done") {
+              result.style.display = "block";
+              const routeEl = document.getElementById("resRoute");
+              routeEl.textContent = data.route || "N/A";
+              routeEl.className = `res-value route-${data.route}`;
+
+              const headingText = data.resolved_heading ? `${data.resolved_heading}${data.resolved_heading_title ? ' - ' + data.resolved_heading_title : ''}` : 'None';
+              const tariffText = data.tariff_code ? ` [Tariff Code: ${data.tariff_code}]` : '';
+              document.getElementById("resHeadingCode").textContent = `${headingText}${tariffText}`;
+              document.getElementById("resGri").textContent = data.gri_rule || "N/A";
+              document.getElementById("resPolicy").textContent = data.export_policy || "N/A";
+              document.getElementById("resBasis").textContent = data.basis || "No basis stated.";
+
+              const citList = document.getElementById("resCitations");
+              citList.innerHTML = "";
+              (data.citations || []).forEach(c => {
+                const li = document.createElement("li");
+                li.textContent = c;
+                citList.appendChild(li);
+              });
+
+              const traceLnk = document.getElementById("traceLink");
+              traceLnk.href = `/runs/${runId}/trace`;
+            } else {
+              errorDiv.style.display = "block";
+              errorDiv.textContent = `Classification run failed: ${data.basis || "Internal processing error"}`;
+            }
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+        }
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

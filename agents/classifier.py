@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 from common.config import settings
@@ -58,12 +59,17 @@ class ClassifierAgent:
         
         # Primary title search based on full description and identified key phrase
         query_1 = description
-        if "vacuum" in description.lower() or "flask" in description.lower():
+        desc_lower = description.lower()
+        if "vacuum" in desc_lower or "flask" in desc_lower or "casserole" in desc_lower:
             query_1 = "vacuum flask vacuum vessel"
-        elif "pen" in description.lower():
+        elif "screw" in desc_lower or "bolt" in desc_lower or "fastener" in desc_lower:
+            query_1 = "screws bolts nuts iron steel 7318"
+        elif "pen" in desc_lower:
             query_1 = "ball point pen"
-        elif "steel" in description.lower() and "spoon" in description.lower():
+        elif "steel" in desc_lower and "spoon" in desc_lower:
             query_1 = "tableware kitchenware spoon fork iron steel"
+        elif "wire" in desc_lower or "fencing" in desc_lower:
+            query_1 = "articles of iron or steel wire fencing 7326"
 
         queries.append(query_1)
         t0 = time.perf_counter()
@@ -94,6 +100,11 @@ class ClassifierAgent:
         })
         retrieved_passages.extend(note_matches)
 
+        # Statutory GRI 1 rule foundation
+        gri1_clause = get_clause("GRI-1")
+        if gri1_clause:
+            retrieved_passages.append(gri1_clause)
+
         # Step 3: Fetch candidate heading text and relative policy
         candidate_headings = [h.get("heading") for h in heading_matches if h.get("heading")]
         policy_matches = []
@@ -110,7 +121,15 @@ class ClassifierAgent:
                 policy_matches.append(clause)
                 retrieved_passages.append(clause)
 
-        # Construct prompt for the LLM
+        # Construct prompt for the LLM with explicit Clause IDs for citation grounding
+        evidence_entries = []
+        for p in retrieved_passages:
+            cid = p.get("clause_id", "")
+            title = p.get("title", "")
+            text = p.get("text", "")
+            evidence_entries.append(f"- [{cid}] {title}: {text}")
+        evidence_str = "\n".join(evidence_entries)
+
         prompt_content = f"""
 REQUEST:
 Description: {sanitized_desc}
@@ -118,17 +137,25 @@ Declared Materials: {materials}
 Intended Use: {intended_use}
 Injection Detected: {injection_detected}
 
-RETRIEVED LEGAL EVIDENCE:
-Heading Titles: {[h.get('title') for h in heading_matches]}
-Notes: {[n.get('text') for n in note_matches]}
-Export Policies: {[p.get('text') for p in policy_matches]}
+RETRIEVED LEGAL EVIDENCE (Cite ONLY these exact Clause IDs):
+{evidence_str}
 
 TASK:
-Classify this product applying GRI in numerical order. Name the resolved heading and cite all relied-on legal provisions.
-Output must be strictly JSON format matching the instructions.
+Classify this product applying GRI in numerical order.
+In 'resolved_heading', output ONLY the 4-digit heading number (e.g. '9617').
+In 'citations', list ONLY the exact Clause IDs from the RETRIEVED LEGAL EVIDENCE above (e.g. ['HD9617', 'SEC-XV-NOTE-1M', 'GRI-1', 'DGFT-9617']).
+Output must be strictly JSON format matching the system instructions.
 """
         logger.info("Classifier invoking LLMClient...")
         llm_response = self.llm.generate(prompt=prompt_content, system_prompt=self.system_prompt)
+
+        # Normalize resolved_heading to 4-digit number (e.g. '9617')
+        if isinstance(llm_response, dict):
+            raw_heading = llm_response.get("resolved_heading")
+            if raw_heading:
+                m = re.search(r"\b(73\d{2}|96\d{2}|\d{4})\b", str(raw_heading))
+                if m:
+                    llm_response["resolved_heading"] = m.group(1)
 
         return {
             "proposal": llm_response,

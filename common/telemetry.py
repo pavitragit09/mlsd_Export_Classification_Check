@@ -70,11 +70,19 @@ class TraceStore:
                     retrieved_passage_ids TEXT,
                     token_counts TEXT,
                     verification_outcome TEXT,
+                    per_step_tokens TEXT,
+                    per_step_cost TEXT,
+                    total_cost REAL DEFAULT 0.0,
                     created_at TEXT,
                     updated_at TEXT
                 )
                 """
             )
+            for col, c_type in [("per_step_tokens", "TEXT"), ("per_step_cost", "TEXT"), ("total_cost", "REAL DEFAULT 0.0")]:
+                try:
+                    conn.execute(f"ALTER TABLE run_traces ADD COLUMN {col} {c_type}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     def save_trace(
@@ -92,6 +100,9 @@ class TraceStore:
         retrieved_passage_ids: Optional[List[str]] = None,
         token_counts: Optional[Dict[str, int]] = None,
         verification_outcome: Optional[Dict[str, Any]] = None,
+        per_step_tokens: Optional[Dict[str, Dict[str, int]]] = None,
+        per_step_cost: Optional[Dict[str, float]] = None,
+        total_cost: Optional[float] = None,
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         with self._get_connection() as conn:
@@ -101,8 +112,9 @@ class TraceStore:
                     run_id, correlation_id, status, prompt_version,
                     route, basis, citations, per_step_latency,
                     tool_calls, queries, retrieved_passage_ids,
-                    token_counts, verification_outcome, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    token_counts, verification_outcome, per_step_tokens,
+                    per_step_cost, total_cost, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
                     status=excluded.status,
                     route=excluded.route,
@@ -114,6 +126,9 @@ class TraceStore:
                     retrieved_passage_ids=excluded.retrieved_passage_ids,
                     token_counts=excluded.token_counts,
                     verification_outcome=excluded.verification_outcome,
+                    per_step_tokens=excluded.per_step_tokens,
+                    per_step_cost=excluded.per_step_cost,
+                    total_cost=excluded.total_cost,
                     updated_at=excluded.updated_at
                 """,
                 (
@@ -130,6 +145,9 @@ class TraceStore:
                     json.dumps(retrieved_passage_ids or []),
                     json.dumps(token_counts or {"prompt_tokens": 0, "completion_tokens": 0}),
                     json.dumps(verification_outcome or {}),
+                    json.dumps(per_step_tokens or {}),
+                    json.dumps(per_step_cost or {}),
+                    float(total_cost or 0.0),
                     now,
                     now,
                 ),
@@ -143,6 +161,7 @@ class TraceStore:
             if not row:
                 return None
 
+            keys = row.keys()
             return {
                 "run_id": row["run_id"],
                 "correlation_id": row["correlation_id"],
@@ -157,6 +176,9 @@ class TraceStore:
                 "retrieved_passage_ids": json.loads(row["retrieved_passage_ids"] or "[]"),
                 "token_counts": json.loads(row["token_counts"] or "{}"),
                 "verification_outcome": json.loads(row["verification_outcome"] or "{}"),
+                "per_step_tokens": json.loads(row["per_step_tokens"] if "per_step_tokens" in keys and row["per_step_tokens"] else "{}"),
+                "per_step_cost": json.loads(row["per_step_cost"] if "per_step_cost" in keys and row["per_step_cost"] else "{}"),
+                "total_cost": float(row["total_cost"] if "total_cost" in keys and row["total_cost"] is not None else 0.0),
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
             }

@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     WORKER_CONCURRENCY: int = 1
 
     # Corpus & Vector Index
-    CORPUS_DIR: str = "data/sample"
+    CORPUS_DIR: str = "data/corpus" if os.path.exists("data/corpus") else "data/sample"
     INDEX_DIR: str = "data/index"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
@@ -43,14 +43,22 @@ class Settings(BaseSettings):
     # Reliability & Circuit Breaker
     CIRCUIT_BREAKER_FAIL_THRESHOLD: int = 3
     CIRCUIT_BREAKER_RESET_TIMEOUT_SEC: float = 30.0
-    LLM_REQUEST_TIMEOUT_SEC: float = 15.0
+    LLM_REQUEST_TIMEOUT_SEC: float = 60.0
+    LLM_TIMEOUT_SECONDS: float = 60.0
+    LLM_MAX_RETRIES: int = 3
     TOOL_CALL_TIMEOUT_SEC: float = 10.0
 
     # Agent Limits
     AGENT_MAX_STEPS: int = 6
     AGENT_MAX_TOOL_CALLS: int = 8
-    AGENT_WALL_CLOCK_TIMEOUT_SEC: float = 60.0
-    PROMPT_VERSION: str = "classifier_v1"
+    AGENT_WALL_CLOCK_TIMEOUT_SEC: float = 120.0
+    CLASSIFIER_PROMPT_VERSION: str = "classifier_v3"
+    PROMPT_VERSION: str = "classifier_v3"
+    VERIFIER_RETRY_ENABLED: bool = True
+
+    # Token Cost Rates (USD per token, default 0.0)
+    COST_PER_PROMPT_TOKEN: float = 0.0
+    COST_PER_COMPLETION_TOKEN: float = 0.0
 
     model_config = SettingsConfigDict(
         env_file=".env",

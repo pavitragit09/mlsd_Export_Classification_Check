@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+from typing import Optional
 from common.logging import logger
 
 
-def ensure_corpus(corpus_dir: str = "data/sample") -> bool:
+def ensure_corpus(corpus_dir: Optional[str] = None) -> bool:
     """Verifies that the corpus files exist; logs instructions if missing."""
+    if corpus_dir is None:
+        corpus_dir = "data/corpus" if os.path.exists("data/corpus") else "data/sample"
     if not os.path.exists(corpus_dir):
         os.makedirs(corpus_dir, exist_ok=True)
 

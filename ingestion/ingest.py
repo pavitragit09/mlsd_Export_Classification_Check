@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import sys
+from typing import Optional
 from common.config import settings
 from common.logging import logger
 from ingestion.corpus_downloader import ensure_corpus
@@ -11,14 +13,15 @@ from ingestion.chunker import CorpusChunker
 from ingestion.indexer import CorpusIndexer
 
 
-def run_ingest() -> None:
-    logger.info("Starting corpus ingestion pipeline...")
-    ensure_corpus(settings.CORPUS_DIR)
+def run_ingest(corpus_dir: Optional[str] = None) -> None:
+    target_corpus = corpus_dir or ("data/corpus" if os.path.exists("data/corpus") else settings.CORPUS_DIR)
+    logger.info(f"Starting corpus ingestion pipeline using: {target_corpus}")
+    ensure_corpus(target_corpus)
 
-    parser = CorpusParser(corpus_dir=settings.CORPUS_DIR)
+    parser = CorpusParser(corpus_dir=target_corpus)
     records = parser.load_all()
     if not records:
-        logger.error(f"No records found in {settings.CORPUS_DIR}. Aborting ingestion.")
+        logger.error(f"No records found in {target_corpus}. Aborting ingestion.")
         sys.exit(1)
 
     chunker = CorpusChunker()

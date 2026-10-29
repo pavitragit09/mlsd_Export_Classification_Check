@@ -1,0 +1,90 @@
+[
+  {
+    "clause_id": "CH96-NOTE-1",
+    "type": "note",
+    "chapter": "96",
+    "title": "Chapter 96 Note 1 Scope and Exclusions",
+    "text": "This Chapter covers miscellaneous manufactured articles. This Chapter does not cover: (a) pencils for cosmetic or toilet uses (Chapter 33); (b) articles of Chapter 66 (for example, parts of umbrellas or walking-sticks); (c) imitation Jewellery (heading 7117); (d) parts of general use, as defined in Note 2 of Section XV, of base metal (Section XV), or similar goods of plastics (Chapter 39); (e) cutlery or other articles of Chapter 82 with handles or other parts of carving or moulding materials; (f) articles of Chapter 90, for example, spectacle frames, mathematical drawing pens; (g) articles of Chapter 91 (for example, clock or watch cases); (h) musical instruments or parts or accessories thereof (Chapter 92); (ij) articles of Chapter 93 (arms and parts thereof); (k) articles of Chapter 94 (furniture, luminaires and lighting fittings); (l) articles of Chapter 95 (toys, games, sports requisites); (m) works of art, collectors' pieces or antiques (Chapter 97).",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "CH96-NOTE-2",
+    "type": "note",
+    "chapter": "96",
+    "title": "Chapter 96 Note 2 Carving Materials",
+    "text": "In heading 9602, the expression 'vegetable or mineral carving material' means: (a) hard seeds, pips, hulls and nuts and similar vegetable materials of a kind used for carving; (b) amber, meerschaum, agglomerated amber and agglomerated meerschaum, jet and mineral substitutes for jet.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9601",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9601",
+    "title": "Worked ivory, bone, tortoiseshell, horn, antlers, coral, mother-of-pearl and other animal carving material, and articles of these materials (including articles obtained by moulding)",
+    "text": "Heading 9601 covers worked ivory, bone, tortoiseshell, horn, antlers, coral, mother-of-pearl and other animal carving material, and articles of these materials.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9602",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9602",
+    "title": "Worked vegetable or mineral carving material and articles of these materials; moulded or carved articles of wax, of stearin, of natural gums or natural resins or of modelling pastes",
+    "text": "Heading 9602 covers worked vegetable or mineral carving material and articles of these materials; moulded or carved articles.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9603",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9603",
+    "title": "Brooms, brushes (including brushes constituting parts of machines, appliances or vehicles), hand-operated mechanical floor sweepers, not motorised, mops and feather dusters; prepared knots and tufts for broom or brush making; paint pads and rollers; squeegees (other than roller squeegees)",
+    "text": "Heading 9603 covers brooms, brushes, hand-operated mechanical floor sweepers, mops, paint rollers and squeegees.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9608",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9608",
+    "title": "Ball point pens; felt tipped and other porous-tipped pens and markers; fountain pens, stylograph pens and other pens; duplicating stylos; propelling or sliding pencils; pen-holders, pencil-holders and similar holders; parts (including caps and clips) of the foregoing articles, other than those of heading 9609",
+    "text": "Heading 9608 covers ball point pens, felt tipped and other porous-tipped pens and markers, fountain pens, stylograph pens and other pens, propelling pencils, and parts thereof.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9613",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9613",
+    "title": "Cigarette lighters and other lighters, whether or not mechanical or electrical, and parts thereof other than flints and wicks",
+    "text": "Heading 9613 covers cigarette lighters and other lighters, whether or not mechanical or electrical, and parts thereof other than flints and wicks.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9615",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9615",
+    "title": "Combs, hair-slides and the like; hairpins, curling pins, curling grips, hair-curlers and the like, other than those of heading 8516, and parts thereof",
+    "text": "Heading 9615 covers combs, hair-slides and the like of hard rubber or plastics or other materials.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9617",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9617",
+    "title": "Vacuum flasks and other vacuum vessels, complete with cases; parts thereof other than glass inners",
+    "text": "Heading 9617 specifically covers vacuum flasks and other vacuum vessels, complete with cases; parts thereof other than glass inners. This heading applies to vacuum insulated flasks and vessels regardless of whether the inner flask or outer casing is made of stainless steel, metal, or moulded plastics. Under GRI 1, classification is determined by the terms of headings and section notes. Subheadings include: 9617 00 11 (Vacuum flasks having a capacity not exceeding 0.75 l), 9617 00 12 (Vacuum flasks having a capacity exceeding 0.75 l), 9617 00 13 (Casserol and other vacuum containers), 9617 00 19 (Other complete vacuum vessels), 9617 00 90 (Parts other than glass inners).",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  },
+  {
+    "clause_id": "HD9620",
+    "type": "heading",
+    "chapter": "96",
+    "heading": "9620",
+    "title": "Monopods, bipods, tripods and similar articles",
+    "text": "Heading 9620 covers monopods, bipods, tripods and similar articles regardless of composition material.",
+    "source_doc": "CBIC Customs Tariff Chapter 96"
+  }
+]

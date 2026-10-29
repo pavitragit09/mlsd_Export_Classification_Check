@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import json
 import os
+
+# Prevent HF network calls when loading cached embeddings
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+
 from typing import Any, Dict, List, Optional
 import faiss
 import numpy as np
@@ -28,6 +34,15 @@ class IndexManager:
 
         self.manifest: Dict[str, Any] = {}
         self._clause_map: Dict[str, Dict[str, Any]] = {}
+
+        try:
+            self.encoder = SentenceTransformer(self.model_name, local_files_only=True)
+        except Exception:
+            try:
+                self.encoder = SentenceTransformer(self.model_name)
+            except Exception as e:
+                logger.warning(f"Eager loading of SentenceTransformer failed ({e}); will retry on search.")
+                self.encoder = None
 
         self._load()
 
@@ -72,7 +87,10 @@ class IndexManager:
 
     def _get_encoder(self) -> SentenceTransformer:
         if self.encoder is None:
-            self.encoder = SentenceTransformer(self.model_name)
+            try:
+                self.encoder = SentenceTransformer(self.model_name, local_files_only=True)
+            except Exception:
+                self.encoder = SentenceTransformer(self.model_name)
         return self.encoder
 
     def search(
@@ -129,6 +147,35 @@ class IndexManager:
     def get_clause(self, clause_id: str) -> Optional[Dict[str, Any]]:
         return self._clause_map.get(clause_id.strip().upper())
 
+    def get_heading_title(self, heading_num: Optional[str]) -> Optional[str]:
+        if not heading_num:
+            return None
+        h_clean = str(heading_num).strip()
+        clause = self._clause_map.get(f"HD{h_clean}")
+        if clause:
+            return clause.get("title")
+        for item in self.hd_meta:
+            if item.get("heading") == h_clean:
+                return item.get("title")
+        return None
+
+    def validate_tariff_code(self, proposed_code: Optional[str]) -> Optional[str]:
+        """Validates that proposed tariff code exists in the statutory corpus; returns code or None."""
+        if not proposed_code:
+            return None
+        import re
+        raw = str(proposed_code).strip()
+        compact = re.sub(r"\s+", "", raw)
+        if len(compact) < 4:
+            return None
+        for item in self.ft_meta + self.hd_meta:
+            txt = (item.get("text", "") + " " + item.get("title", "")).lower()
+            txt_compact = re.sub(r"\s+", "", txt)
+            if compact in txt_compact:
+                return raw
+        return None
+
 
 # Global singleton instance
 index_manager = IndexManager()
+

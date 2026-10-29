@@ -3,12 +3,43 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 from common.config import settings
 from common.logging import logger
 from llm.providers import get_llm_client
 from retrieval.tools import search_corpus, get_clause
+
+
+def _citation_to_clause_id(cit: str) -> Optional[str]:
+    """Maps human-readable or variations of legal citations to canonical corpus clause_ids."""
+    c = cit.strip().upper()
+    # DGFT citations: "DGFT-9617", "DGFT CHAPTER 96 HEADING 9617", "DGFT-7323"
+    m_dgft = re.search(r"DGFT.*?(73\d{2}|96\d{2})\b", c)
+    if m_dgft:
+        return f"DGFT-{m_dgft.group(1)}"
+
+    # Heading citations: "HEADING 9617", "HD9617", "9617"
+    m_hd = re.search(r"(?:HEADING|HD)?\s*(73\d{2}|96\d{2})\b", c)
+    if m_hd:
+        return f"HD{m_hd.group(1)}"
+
+    # GRI citations: "GRI 1", "GRI-1", "GRI 2(A)", etc.
+    m_gri = re.search(r"GRI[-\s]*([1-6](?:[A-Z]|\([A-Z]\))?)", c)
+    if m_gri:
+        rule = m_gri.group(1).replace("(", "").replace(")", "")
+        return f"GRI-{rule}"
+
+    # Section XV Note 1(m): "SECTION XV NOTE 1(M)", "SEC-XV-NOTE-1M"
+    if "XV" in c and "1" in c and "M" in c:
+        return "SEC-XV-NOTE-1M"
+    if "XV" in c and "2" in c:
+        return "SEC-XV-NOTE-2"
+    if "XX" in c and "1" in c:
+        return "SEC-XX-NOTE-1"
+
+    return None
 
 
 def load_verifier_prompt() -> str:
@@ -30,7 +61,7 @@ class VerifierAgent:
         self,
         proposal: Dict[str, Any],
         retrieved_passages: List[Dict[str, Any]],
-        retry_allowed: bool = True,
+        retry_allowed: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Audits proposal:
@@ -39,51 +70,122 @@ class VerifierAgent:
         3. On failure, optionally triggers a secondary fallback search strategy
         4. Decides final route: clear-for-filing | seek-product-clarification | specialist-classification-review
         """
+        if retry_allowed is None:
+            retry_allowed = (
+                os.environ.get("VERIFIER_RETRY_ENABLED", "true").lower() in ("true", "1", "yes")
+                and getattr(settings, "VERIFIER_RETRY_ENABLED", True)
+            )
         citations = proposal.get("citations", [])
-        resolved_heading = proposal.get("resolved_heading")
+        raw_heading = proposal.get("resolved_heading")
+        resolved_heading = None
+        if raw_heading:
+            m = re.search(r"\b(73\d{2}|96\d{2}|\d{4})\b", str(raw_heading))
+            resolved_heading = m.group(1) if m else str(raw_heading).strip()
+            proposal["resolved_heading"] = resolved_heading
+
         proposal_route = proposal.get("route", "specialist-classification-review")
 
-        # Collect text of all retrieved passages
-        retrieved_corpus_text = " ".join([p.get("text", "") + " " + p.get("title", "") for p in retrieved_passages]).lower()
+        # Collect clause IDs, titles, and text of all retrieved passages
+        retrieved_clause_ids = {
+            str(p.get("clause_id", "")).strip().upper()
+            for p in retrieved_passages
+            if p.get("clause_id")
+        }
+        retrieved_titles = [str(p.get("title", "")).lower() for p in retrieved_passages]
+        retrieved_texts = [str(p.get("text", "")).lower() for p in retrieved_passages]
+        retrieved_corpus_text = " ".join([
+            str(p.get("text", "")) + " " + str(p.get("title", "")) + " " + str(p.get("clause_id", ""))
+            for p in retrieved_passages
+        ]).lower()
 
         verified_citations: List[str] = []
         unverified_citations: List[str] = []
 
-        # Audit each citation against retrieved corpus text
+        # Audit each citation against retrieved corpus passages
         for citation in citations:
-            cit_clean = citation.lower().replace("-", " ").replace(":", " ")
+            cit_str = str(citation).strip()
+            cit_upper = cit_str.upper()
+            cit_lower = cit_str.lower()
+
+            # 1. Exact clause_id match
+            if cit_upper in retrieved_clause_ids:
+                verified_citations.append(citation)
+                continue
+
+            # 2. Normalized clause_id match
+            norm_id = _citation_to_clause_id(cit_str)
+            if norm_id and norm_id.upper() in retrieved_clause_ids:
+                verified_citations.append(citation)
+                continue
+
+            # 3. Exact substring match in retrieved titles or texts
+            if (
+                cit_lower in retrieved_corpus_text
+                or any(cit_lower in t for t in retrieved_titles)
+                or any(cit_lower in txt for txt in retrieved_texts)
+            ):
+                verified_citations.append(citation)
+                continue
+
+            # 4. Token match against corpus text
+            cit_clean = cit_lower.replace("-", " ").replace(":", " ")
             cit_words = [
                 w for w in cit_clean.split()
-                if len(w) >= 3 and w not in ["heading", "rule", "note", "section", "chapter", "the", "for"]
+                if len(w) >= 2 and w not in ["heading", "rule", "note", "section", "chapter", "the", "for", "and", "of"]
             ]
             if cit_words and any(w in retrieved_corpus_text for w in cit_words):
                 verified_citations.append(citation)
             else:
                 unverified_citations.append(citation)
 
-        # Check for out-of-scope conditions
-        if proposal_route == "specialist-classification-review" or not resolved_heading:
+        # Check for out-of-scope or clarification conditions
+        if proposal_route in ["specialist-classification-review", "seek-product-clarification"]:
             return {
                 "verified": True,
-                "route": "specialist-classification-review",
-                "basis": proposal.get("basis", "Product out of scope or requires specialist review."),
+                "route": proposal_route,
+                "basis": proposal.get("basis", "Product out of scope or requires product clarification."),
                 "citations_verified": verified_citations,
                 "issues": unverified_citations,
                 "strategy_retry_used": False,
             }
 
-        # Check citation grounding failure
+        if not resolved_heading:
+            return {
+                "verified": False,
+                "route": "specialist-classification-review",
+                "basis": proposal.get("basis", "No resolved heading proposed; escalating for review."),
+                "citations_verified": verified_citations,
+                "issues": unverified_citations,
+                "strategy_retry_used": False,
+            }
+
+        # Check citation grounding failure - fetch cited clause by ID before rejecting
         if unverified_citations and retry_allowed:
-            logger.warning(f"Verification caught unverified citations: {unverified_citations}. Triggering secondary search...")
-            # Secondary search strategy: Search specifically for the missing citation clause
-            missing_query = unverified_citations[0] if unverified_citations else f"Heading {resolved_heading}"
-            extra_search = search_corpus(query=missing_query, collection="fulltext", top_k=3)
-            retrieved_passages.extend(extra_search)
-            # Re-verify once
+            logger.warning(f"Verification caught unverified citations: {unverified_citations}. Triggering fetch-by-ID retry search...")
+            for uncit in unverified_citations:
+                # 1. Try direct clause ID lookup
+                clause = get_clause(uncit.strip())
+                if clause:
+                    retrieved_passages.append(clause)
+                    continue
+
+                # 2. Try normalized clause ID lookup
+                norm_id = _citation_to_clause_id(uncit)
+                if norm_id:
+                    clause = get_clause(norm_id)
+                    if clause:
+                        retrieved_passages.append(clause)
+                        continue
+
+                # 3. Fallback vector search on fulltext corpus
+                extra_search = search_corpus(query=uncit, collection="fulltext", top_k=2)
+                retrieved_passages.extend(extra_search)
+
+            # Re-verify once with fetched evidence
             return self.verify(proposal, retrieved_passages, retry_allowed=False)
 
         if unverified_citations and not retry_allowed:
-            logger.error("Secondary search strategy failed to resolve citations. Escalating.")
+            logger.error(f"Secondary search strategy failed to resolve citations. Escalating to specialist review: {unverified_citations}")
             return {
                 "verified": False,
                 "route": "specialist-classification-review",

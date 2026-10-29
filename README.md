@@ -117,6 +117,15 @@ To stop containers:
 docker compose down
 ```
 
+### Fast Development Workflow (No Rebuilds)
+The repository includes `docker-compose.override.yml`, which bind-mounts your local workspace into the containers (`.:/app`) and runs Uvicorn with `--reload`.
+- **Live Code Edits**: Edits in `api/`, `agents/`, `retrieval/`, and `worker/` take effect immediately without rebuilding containers.
+- **Worker Reloading**: If worker code changes, restart only the worker container instantly without a full rebuild:
+  ```bash
+  docker compose restart worker
+  ```
+- **Persistent Data**: Corpus indices and SQLite databases remain persistent in `shared_data` and `./data`.
+
 ---
 
 ## 5. Local Development & Testing (Without Docker)
@@ -209,19 +218,45 @@ curl -X POST http://localhost:8000/runs \
 }
 ```
 
-### 5. Health & Observability Metrics
-- Check health:
-  ```bash
-  curl http://localhost:8000/health
-  ```
-- Prometheus metrics:
+### 5. Health, Observability & Dashboards
+- **Web UI & Trace Explorer**: [http://localhost:8000/](http://localhost:8000/)
+- **Grafana Live Dashboard**: [http://localhost:3000](http://localhost:3000) (pre-configured anonymous viewer access; automatically loads the provisioned *Export Classification Service* dashboard tracking total runs, runs per minute, error rate, p50/p95 latency, quarantined requests, and index chunks).
+- **Prometheus Server**: [http://localhost:9090](http://localhost:9090) (scrapes `api:8000/metrics` every 5s).
+- **Raw Prometheus Metrics**:
   ```bash
   curl http://localhost:8000/metrics
   ```
-- View JSON Schema:
+- **Health Check Endpoint**:
+  ```bash
+  curl http://localhost:8000/health
+  ```
+- **Published JSON Schema**:
   ```bash
   curl http://localhost:8000/schema
   ```
+
+---
+
+## 7. Performance & Load Testing with Locust
+
+The project includes an end-to-end lifecycle load test in `locustfile.py` that submits product declarations to `POST /runs`, polls `GET /runs/{id}` until terminal completion, and measures realistic asynchronous turnaround latency.
+
+### Install Development Dependencies
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Run Headless Load Test
+Run a headless benchmark across concurrent users (e.g., 10 users for 60 seconds):
+```bash
+locust -f locustfile.py --headless -u 10 -r 10 -t 60s --host http://localhost:8000 --only-summary
+```
+
+### Run with Interactive Web UI
+```bash
+locust -f locustfile.py --host http://localhost:8000
+```
+Open **[http://localhost:8089](http://localhost:8089)** in your browser to configure concurrency, spawn rate, and view real-time latency charts. For detailed empirical results, SLA verification, and worker scaling analysis, refer to [`docs/LOAD_TEST.md`](docs/LOAD_TEST.md).
 
 ---
 

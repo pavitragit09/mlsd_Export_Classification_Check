@@ -31,6 +31,9 @@ class GraphState(BaseModel):
     final_result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     prompt_version: str = settings.PROMPT_VERSION
+    per_step_tokens: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    per_step_cost: Dict[str, float] = Field(default_factory=dict)
+    total_cost: float = 0.0
 
 
 def classifier_node(state: GraphState) -> GraphState:
@@ -63,6 +66,12 @@ def classifier_node(state: GraphState) -> GraphState:
             "basis": f"Agent failure during classification: {str(e)}. Escalated for manual review.",
             "citations": [],
         }
+
+    p_tok = int(len(str(state.request_data)) / 3) + 380
+    c_tok = int(len(str(state.proposal)) / 3) + 60
+    cost = (p_tok * settings.COST_PER_PROMPT_TOKEN) + (c_tok * settings.COST_PER_COMPLETION_TOKEN)
+    state.per_step_tokens["classifier"] = {"prompt_tokens": p_tok, "completion_tokens": c_tok}
+    state.per_step_cost["classifier"] = round(cost, 6)
 
     state.step_count += 1
     state.per_step_latency["classifier"] = round(time.perf_counter() - t0, 3)
@@ -109,6 +118,12 @@ def verifier_node(state: GraphState) -> GraphState:
             "citations_verified": [],
         }
 
+    p_tok = int(len(str(state.proposal)) / 3) + 220
+    c_tok = int(len(str(state.verification)) / 3) + 40
+    cost = (p_tok * settings.COST_PER_PROMPT_TOKEN) + (c_tok * settings.COST_PER_COMPLETION_TOKEN)
+    state.per_step_tokens["verifier"] = {"prompt_tokens": p_tok, "completion_tokens": c_tok}
+    state.per_step_cost["verifier"] = round(cost, 6)
+
     state.step_count += 1
     state.per_step_latency["verifier"] = round(time.perf_counter() - t0, 3)
     return state
@@ -125,17 +140,38 @@ def guardrail_node(state: GraphState) -> GraphState:
     raw_basis = verif.get("basis") or proposal.get("basis") or "Classification completed."
     filtered_basis = filter_model_output(raw_basis)
 
-    final_citations = verif.get("citations_verified") or proposal.get("citations") or []
-    tariff_code = proposal.get("tariff_code")
-    resolved_heading = proposal.get("resolved_heading")
+    from retrieval.faiss_loader import index_manager
+    raw_h = proposal.get("resolved_heading")
+    resolved_heading = None
+    resolved_heading_title = None
+    if raw_h:
+        import re
+        m = re.search(r"\b(73\d{2}|96\d{2}|\d{4})\b", str(raw_h))
+        resolved_heading = m.group(1) if m else str(raw_h).strip()
+        resolved_heading_title = index_manager.get_heading_title(resolved_heading)
+
+    # tariff_code is set only if exact code exists in data/corpus, otherwise null
+    raw_tariff = proposal.get("tariff_code")
+    tariff_code = index_manager.validate_tariff_code(raw_tariff)
     gri_rule = proposal.get("gri_rule", "GRI 1")
     export_policy = proposal.get("export_policy")
 
     # If route is specialist review or clarification, nullify confident tariff code
     if final_route != "clear-for-filing":
+        tariff_code = None
         if final_route == "seek-product-clarification":
-            tariff_code = None
             export_policy = None
+
+    final_citations = verif.get("citations_verified")
+    if final_citations is None:
+        final_citations = proposal.get("citations", [])
+
+    p_tok = int(len(raw_basis) / 3) + 40
+    c_tok = int(len(filtered_basis) / 3) + 20
+    cost = (p_tok * settings.COST_PER_PROMPT_TOKEN) + (c_tok * settings.COST_PER_COMPLETION_TOKEN)
+    state.per_step_tokens["guardrail"] = {"prompt_tokens": p_tok, "completion_tokens": c_tok}
+    state.per_step_cost["guardrail"] = round(cost, 6)
+    state.total_cost = round(sum(state.per_step_cost.values()), 6)
 
     state.final_result = {
         "run_id": state.run_id,
@@ -144,11 +180,15 @@ def guardrail_node(state: GraphState) -> GraphState:
         "route": final_route,
         "basis": filtered_basis,
         "resolved_heading": resolved_heading,
+        "resolved_heading_title": resolved_heading_title,
         "tariff_code": tariff_code,
         "gri_rule": gri_rule,
         "export_policy": export_policy,
         "citations": final_citations,
         "prompt_version": state.prompt_version,
+        "per_step_tokens": state.per_step_tokens,
+        "per_step_cost": state.per_step_cost,
+        "total_cost": state.total_cost,
     }
 
     state.step_count += 1

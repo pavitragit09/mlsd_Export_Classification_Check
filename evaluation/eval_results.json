@@ -1,0 +1,324 @@
+{
+  "benchmark_run_at": "2026-10-29T08:07:10Z",
+  "prompt_version": "classifier_v1",
+  "llm_provider": "stub",
+  "total_scenarios": 20,
+  "duration_seconds": 3.28,
+  "metrics": {
+    "route_accuracy_pct": 100.0,
+    "heading_accuracy_pct": 100.0,
+    "escalation_correctness_pct": 100.0,
+    "citation_validity_pct": 100.0,
+    "hallucination_rate_pct": 0.0
+  },
+  "counts": {
+    "route_correct": 20,
+    "heading_evaluated": 14,
+    "heading_correct": 14,
+    "escalation_scenarios": 6,
+    "escalation_correct": 6,
+    "clear_for_filing": 14,
+    "valid_citations": 14,
+    "hallucinated_citations": 0
+  },
+  "detailed_results": [
+    {
+      "id": "scenario_01_vacuum_flask",
+      "description": "Stainless steel vacuum flask with a moulded plastic outer bo...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9617",
+      "predicted_heading": "9617",
+      "heading_match": true,
+      "citations": [
+        "Heading 9617",
+        "Section XV Note 1(m)",
+        "GRI 1",
+        "DGFT Export Policy 2023 Ch 96"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_02_lithium_battery",
+      "description": "High-capacity lithium battery pack with protective casing fo...",
+      "expected_route": "specialist-classification-review",
+      "predicted_route": "specialist-classification-review",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_03_paracetamol_tablet",
+      "description": "Paracetamol 500mg analgesic tablets packaged in aluminum bli...",
+      "expected_route": "specialist-classification-review",
+      "predicted_route": "specialist-classification-review",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_04_cotton_tshirt",
+      "description": "Men 100 percent knitted cotton short sleeve crew neck t-shir...",
+      "expected_route": "specialist-classification-review",
+      "predicted_route": "specialist-classification-review",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_05_wooden_chair",
+      "description": "Solid teak wood dining chair with upholstered seat cushion f...",
+      "expected_route": "specialist-classification-review",
+      "predicted_route": "specialist-classification-review",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_06_ambiguous_metal_part",
+      "description": "Fabricated steel component part with unspecified mounting ge...",
+      "expected_route": "seek-product-clarification",
+      "predicted_route": "seek-product-clarification",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_07_ambiguous_casing",
+      "description": "Moulded plastic enclosure body intended for unstated domesti...",
+      "expected_route": "seek-product-clarification",
+      "predicted_route": "seek-product-clarification",
+      "route_match": true,
+      "expected_heading": null,
+      "predicted_heading": null,
+      "heading_match": null,
+      "citations": [],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_08_steel_pressure_cooker",
+      "description": "Domestic stainless steel pressure cooker with safety valve f...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7323",
+      "predicted_heading": "7323",
+      "heading_match": true,
+      "citations": [
+        "Heading 7323",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_09_iron_screws",
+      "description": "Threaded steel wood screws with countersunk head for timber ...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7318",
+      "predicted_heading": "7318",
+      "heading_match": true,
+      "citations": [
+        "Heading 7318",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_10_steel_seamless_pipe",
+      "description": "Cold-drawn seamless stainless steel pipe for high-pressure f...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7304",
+      "predicted_heading": "7304",
+      "heading_match": true,
+      "citations": [
+        "Heading 7304",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_11_steel_spoons",
+      "description": "Set of polished stainless steel kitchenware soup spoons for ...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7323",
+      "predicted_heading": "7323",
+      "heading_match": true,
+      "citations": [
+        "Heading 7323",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_12_steel_wire",
+      "description": "Cold-drawn galvanised steel fencing wire of 3mm diameter.",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7326",
+      "predicted_heading": "7326",
+      "heading_match": true,
+      "citations": [
+        "Heading 7326",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_13_steel_wool_pads",
+      "description": "Coarse iron steel wool cleaning pads for scrubbing pots and ...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "7323",
+      "predicted_heading": "7323",
+      "heading_match": true,
+      "citations": [
+        "Heading 7323",
+        "GRI 1",
+        "DGFT Chapter 73 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_14_ballpoint_pens",
+      "description": "Retractable ball point pens with tungsten carbide ball and p...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9608",
+      "predicted_heading": "9608",
+      "heading_match": true,
+      "citations": [
+        "Heading 9608",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_15_fountain_pen",
+      "description": "Refillable luxury fountain pen with gold-plated stainless st...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9608",
+      "predicted_heading": "9608",
+      "heading_match": true,
+      "citations": [
+        "Heading 9608",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_16_cigarette_lighter",
+      "description": "Gas-fueled pocket cigarette lighter with piezoelectric ignit...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9613",
+      "predicted_heading": "9613",
+      "heading_match": true,
+      "citations": [
+        "Heading 9613",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_17_hair_comb",
+      "description": "Moulded plastic dressing combs for hairdressing and personal...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9615",
+      "predicted_heading": "9615",
+      "heading_match": true,
+      "citations": [
+        "Heading 9615",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_18_camera_tripod",
+      "description": "Collapsible aluminium tripod support stand with adjustable l...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9620",
+      "predicted_heading": "9620",
+      "heading_match": true,
+      "citations": [
+        "Heading 9620",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_19_monopod_support",
+      "description": "Telescopic composite monopod camera stick for handheld photo...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9620",
+      "predicted_heading": "9620",
+      "heading_match": true,
+      "citations": [
+        "Heading 9620",
+        "GRI 1",
+        "DGFT Chapter 96 Policy"
+      ],
+      "hallucination": false
+    },
+    {
+      "id": "scenario_20_vacuum_casserole",
+      "description": "Thermal insulated vacuum food container casserole with stain...",
+      "expected_route": "clear-for-filing",
+      "predicted_route": "clear-for-filing",
+      "route_match": true,
+      "expected_heading": "9617",
+      "predicted_heading": "9617",
+      "heading_match": true,
+      "citations": [
+        "Heading 9617",
+        "Section XV Note 1(m)",
+        "GRI 1",
+        "DGFT Export Policy 2023 Ch 96"
+      ],
+      "hallucination": false
+    }
+  ]
+}

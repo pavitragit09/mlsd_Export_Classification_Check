@@ -61,7 +61,6 @@ class RunRequest(BaseModel):
             "wood": ["wood"],
             "aluminium": ["aluminium"],
             "copper": ["copper"],
-            "lithium": ["lithium"],
         }
 
         for word, allowed_enums in material_keywords.items():
@@ -87,6 +86,7 @@ class RunStatusResponse(BaseModel):
     route: Optional[str] = None  # clear-for-filing | seek-product-clarification | specialist-classification-review
     basis: Optional[str] = None
     resolved_heading: Optional[str] = None
+    resolved_heading_title: Optional[str] = None
     tariff_code: Optional[str] = None
     gri_rule: Optional[str] = None
     export_policy: Optional[str] = None

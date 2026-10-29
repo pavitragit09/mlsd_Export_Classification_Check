@@ -8,6 +8,7 @@ import time
 from typing import Any, Dict, Optional
 from common.config import settings
 from common.logging import logger
+from common.security import redact_sensitive_text
 from llm.circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 
 
@@ -29,9 +30,10 @@ class LLMClient(abc.ABC):
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
         Executes model call protected by circuit breaker, timeout, and bounded exponential backoff.
+        Retries only on 429 and 503; fails fast on 400, 401, 403, and 404.
         Returns parsed JSON dict or graceful degradation fallback on failure.
         """
-        max_retries = 3
+        max_retries = int(getattr(settings, "LLM_MAX_RETRIES", 3))
         backoff_sec = 0.5
 
         def _execute_with_retries() -> str:
@@ -41,10 +43,31 @@ class LLMClient(abc.ABC):
                     return self._call_raw(prompt, system_prompt)
                 except Exception as e:
                     last_err = e
-                    logger.warning(
-                        f"LLM call attempt {attempt + 1} failed: {e}. Retrying in {backoff_sec * (2 ** attempt):.2f}s..."
-                    )
-                    time.sleep(backoff_sec * (2 ** attempt))
+                    status_code = getattr(getattr(e, "response", None), "status_code", None)
+                    # Check for fatal client errors (400, 401, 403, 404)
+                    if status_code in (400, 401, 403, 404):
+                        logger.error(
+                            f"LLM call fatal client error {status_code}: {redact_sensitive_text(str(e))}. Not retrying."
+                        )
+                        raise e
+
+                    # Only retry on 429, 503, or connection/timeout errors (when status_code is None)
+                    if status_code is not None and status_code not in (429, 503):
+                        logger.error(
+                            f"LLM call non-retryable status {status_code}: {redact_sensitive_text(str(e))}. Not retrying."
+                        )
+                        raise e
+
+                    if attempt < max_retries - 1:
+                        sleep_time = backoff_sec * (2 ** attempt)
+                        logger.warning(
+                            f"LLM call attempt {attempt + 1} failed: {redact_sensitive_text(str(e))}. Retrying in {sleep_time:.2f}s..."
+                        )
+                        time.sleep(sleep_time)
+                    else:
+                        logger.error(
+                            f"LLM call attempt {attempt + 1} failed (max retries reached): {redact_sensitive_text(str(e))}."
+                        )
             raise last_err or RuntimeError("LLM max retries exceeded")
 
         try:
@@ -76,7 +99,8 @@ class LLMClient(abc.ABC):
                 "degraded": True,
             }
         except Exception as e:
-            logger.error(f"LLM invocation failed completely: {e}. Returning fallback escalation.")
+            sanitized_err = redact_sensitive_text(str(e))
+            logger.error(f"LLM invocation failed completely: {sanitized_err}. Returning fallback escalation.")
             return {
                 "article": "Unknown",
                 "candidate_headings": [],
@@ -85,6 +109,6 @@ class LLMClient(abc.ABC):
                 "gri_rule": "GRI 1",
                 "citations": [],
                 "route": "specialist-classification-review",
-                "basis": f"PROVIDER_FAILURE: {str(e)}. Escalated for manual specialist review.",
+                "basis": f"PROVIDER_FAILURE: {sanitized_err}. Escalated for manual specialist review.",
                 "degraded": True,
             }

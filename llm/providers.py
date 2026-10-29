@@ -14,29 +14,36 @@ from stub_llm.main import _generate_stub_response
 class StubLLMClient(LLMClient):
     """Stub LLM provider communicating with stub_llm microservice or local fallback."""
 
+    _global_http_disabled: bool = False
+
     def __init__(self, service_url: Optional[str] = None):
         super().__init__()
+        import os
         self.service_url = service_url or settings.STUB_LLM_URL
+        if "stub_llm" in self.service_url and not os.path.exists("/.dockerenv"):
+            StubLLMClient._global_http_disabled = True
 
     def _call_raw(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        # Try calling the stub service over HTTP
-        try:
-            with httpx.Client(timeout=settings.LLM_REQUEST_TIMEOUT_SEC) as client:
-                res = client.post(
-                    f"{self.service_url}/v1/chat/completions",
-                    json={
-                        "model": "stub-model",
-                        "messages": [
-                            {"role": "system", "content": system_prompt or ""},
-                            {"role": "user", "content": prompt},
-                        ],
-                    },
-                )
-                if res.status_code == 200:
-                    payload = res.json()
-                    return payload["choices"][0]["message"]["content"]
-        except Exception as e:
-            logger.info(f"Stub HTTP call failed ({e}); falling back to in-process stub engine.")
+        # Try calling the stub service over HTTP if not previously disabled
+        if not StubLLMClient._global_http_disabled:
+            try:
+                with httpx.Client(timeout=1.0) as client:
+                    res = client.post(
+                        f"{self.service_url}/v1/chat/completions",
+                        json={
+                            "model": "stub-model",
+                            "messages": [
+                                {"role": "system", "content": system_prompt or ""},
+                                {"role": "user", "content": prompt},
+                            ],
+                        },
+                    )
+                    if res.status_code == 200:
+                        payload = res.json()
+                        return payload["choices"][0]["message"]["content"]
+            except Exception as e:
+                logger.info(f"Stub HTTP call failed ({e}); falling back to in-process stub engine.")
+                StubLLMClient._global_http_disabled = True
 
         # In-process deterministic stub fallback
         combined_text = f"{system_prompt or ''}\n{prompt}"
@@ -83,31 +90,50 @@ class GroqLLMClient(LLMClient):
 
 
 class GeminiLLMClient(LLMClient):
-    """Google Gemini API adapter."""
+    """Google Gemini API adapter with dynamic config, json mode, and clean code fence parsing."""
 
     def __init__(self):
         super().__init__()
-        self.api_key = settings.GEMINI_API_KEY
-        self.model = settings.GEMINI_MODEL
+        import os
+        self.api_key = os.environ.get("GEMINI_API_KEY", settings.GEMINI_API_KEY)
+        self.model = os.environ.get("GEMINI_MODEL", settings.GEMINI_MODEL) or "gemini-1.5-flash"
+        self.timeout = float(os.environ.get("LLM_TIMEOUT_SECONDS", getattr(settings, "LLM_TIMEOUT_SECONDS", settings.LLM_REQUEST_TIMEOUT_SEC)))
 
     def _call_raw(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is not configured")
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
         contents = []
         if system_prompt:
             contents.append({"role": "user", "parts": [{"text": f"System Instructions:\n{system_prompt}"}]})
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
-        with httpx.Client(timeout=settings.LLM_REQUEST_TIMEOUT_SEC) as client:
-            resp = client.post(
-                url,
-                json={"contents": contents},
-            )
+        body = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.0,
+                "responseMimeType": "application/json",
+            },
+        }
+
+        with httpx.Client(timeout=self.timeout) as client:
+            resp = client.post(url, headers=headers, json=body)
             resp.raise_for_status()
             data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
+            raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            if raw_text.startswith("```"):
+                lines = raw_text.splitlines()
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                raw_text = "\n".join(lines).strip()
+            return raw_text
 
 
 class OllamaLLMClient(LLMClient):

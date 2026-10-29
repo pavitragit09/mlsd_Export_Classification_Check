@@ -1,0 +1,29 @@
+[
+  {
+    "clause_id": "SEC-XV-NOTE-1M",
+    "type": "note",
+    "section": "XV",
+    "chapter": "73",
+    "title": "Section XV Note 1(m) Exclusion of Chapter 96 Articles",
+    "text": "Section XV Note 1: This Section does not cover: ... (m) Articles of Chapter 96 (for example, pens, lighters, vacuum flasks or other vacuum vessels complete with cases, and parts thereof); or buttons, pens, pencil holders, pen nibs, monopods, bipods, tripods and similar articles of heading 9620.",
+    "source_doc": "CBIC Customs Tariff Section XV Notes"
+  },
+  {
+    "clause_id": "SEC-XV-NOTE-2",
+    "type": "note",
+    "section": "XV",
+    "chapter": "73",
+    "title": "Section XV Note 2 Parts of General Use",
+    "text": "Throughout the Nomenclature, the expression 'parts of general use' means: (a) Articles of heading 7307, 7312, 7315, 7317 or 7318 and similar articles of other base metal; (b) Springs and leaves for springs, of base metal, other than clock or watch springs (heading 9114); and (c) Articles of headings 8301, 8302, 8308, 8310 and frames and mirrors, of base metal, of heading 8306.",
+    "source_doc": "CBIC Customs Tariff Section XV Notes"
+  },
+  {
+    "clause_id": "SEC-XX-NOTE-1",
+    "type": "note",
+    "section": "XX",
+    "chapter": "96",
+    "title": "Section XX Note 1 Scope of Miscellaneous Manufactured Articles",
+    "text": "Section XX covers miscellaneous manufactured articles including furniture, toys, games and miscellaneous manufactured articles of Chapter 96 such as pens, buttons, lighters, vacuum flasks and other vacuum vessels.",
+    "source_doc": "CBIC Customs Tariff Section XX Notes"
+  }
+]

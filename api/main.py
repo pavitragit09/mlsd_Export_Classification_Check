@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from typing import Any, Dict
@@ -27,7 +28,11 @@ app = FastAPI(
 
 # Prometheus Metrics
 RUNS_TOTAL = Counter("export_classification_runs_total", "Total submitted classification runs", ["status", "route"])
-RUN_LATENCY = Histogram("export_classification_run_latency_seconds", "End-to-end run latency in seconds")
+RUN_LATENCY = Histogram(
+    "export_classification_run_latency_seconds",
+    "End-to-end run latency in seconds",
+    buckets=[0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0, 15.0, 20.0, 30.0, 60.0],
+)
 QUARANTINE_TOTAL = Counter("export_classification_quarantined_total", "Total requests rejected and quarantined")
 INDEX_CHUNKS = Gauge("export_classification_index_chunks_total", "Number of indexed corpus chunks", ["collection"])
 
@@ -108,7 +113,8 @@ async def submit_run(run_req: RunRequest) -> RunSubmitResponse:
     Returns 202 Accepted immediately with run_id.
     """
     run_id = str(uuid.uuid4())
-    corr_id = get_correlation_id()
+    corr_id = run_id
+    set_correlation_id(corr_id)
 
     # Record initial state in trace store
     trace_store.save_trace(
@@ -176,13 +182,14 @@ def get_run_status(run_id: str) -> RunStatusResponse:
     export_policy = None
     gri_rule = "GRI 1"
 
-    # If job finished in worker, prefer the authoritative job result
+    res_heading_title = None
     if job_result:
         route = job_result.get("route")
         basis = job_result.get("basis")
         citations = job_result.get("citations", [])
         status_val = "done"
         res_heading = job_result.get("resolved_heading")
+        res_heading_title = job_result.get("resolved_heading_title")
         tariff_code = job_result.get("tariff_code")
         export_policy = job_result.get("export_policy")
         gri_rule = job_result.get("gri_rule", "GRI 1")
@@ -216,6 +223,20 @@ def get_run_status(run_id: str) -> RunStatusResponse:
                 tariff_code = "9608 10 19"
                 export_policy = "Free"
 
+    # Normalize heading to 4-digit number and lookup title
+    if res_heading:
+        import re
+        m = re.search(r"\b(73\d{2}|96\d{2}|\d{4})\b", str(res_heading))
+        if m:
+            res_heading = m.group(1)
+        if not res_heading_title:
+            res_heading_title = index_manager.get_heading_title(res_heading)
+
+    # Validate tariff code against data/corpus
+    tariff_code = index_manager.validate_tariff_code(tariff_code)
+    if route != "clear-for-filing":
+        tariff_code = None
+
     return RunStatusResponse(
         run_id=run_id,
         correlation_id=corr_id,
@@ -223,6 +244,7 @@ def get_run_status(run_id: str) -> RunStatusResponse:
         route=route,
         basis=basis,
         resolved_heading=res_heading,
+        resolved_heading_title=res_heading_title,
         tariff_code=tariff_code,
         gri_rule=gri_rule,
         export_policy=export_policy,
@@ -290,4 +312,38 @@ def metrics() -> Response:
     INDEX_CHUNKS.labels(collection="fulltext").set(manifest.get("chunk_count_fulltext", 0))
     INDEX_CHUNKS.labels(collection="headings").set(manifest.get("chunk_count_headings", 0))
 
+    try:
+        r = Redis.from_url(settings.REDIS_URL, socket_timeout=1)
+        # Drain completed runs from worker
+        while True:
+            item = r.lpop("metrics:completed_runs")
+            if not item:
+                break
+            try:
+                data = json.loads(item)
+                RUNS_TOTAL.labels(status=data.get("status", "done"), route=data.get("route", "unknown")).inc()
+            except Exception:
+                pass
+
+        # Drain latencies from worker
+        while True:
+            lat = r.lpop("metrics:latencies_queue")
+            if not lat:
+                break
+            try:
+                RUN_LATENCY.observe(float(lat))
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f"Could not drain worker metrics from Redis: {e}")
+
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# Mount static web UI at root (serves index.html at GET /)
+from fastapi.staticfiles import StaticFiles
+import os
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")

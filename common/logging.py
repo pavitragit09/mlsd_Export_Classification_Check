@@ -7,27 +7,34 @@ import logging
 import sys
 from datetime import datetime, timezone
 from typing import Any, Dict
+from common.security import redact_sensitive_text
 from common.telemetry import get_correlation_id
 
 
 class JSONFormatter(logging.Formatter):
-    """Formats log records as structured JSON."""
+    """Formats log records as structured JSON with sensitive token redaction."""
 
     def format(self, record: logging.LogRecord) -> str:
         log_obj: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": redact_sensitive_text(record.getMessage()),
             "correlation_id": get_correlation_id(),
         }
 
         # Include custom attributes if passed via extra
         if hasattr(record, "extra_data") and isinstance(record.extra_data, dict):
-            log_obj.update(record.extra_data)
+            clean_extra = {}
+            for k, v in record.extra_data.items():
+                if isinstance(v, str):
+                    clean_extra[k] = redact_sensitive_text(v)
+                else:
+                    clean_extra[k] = v
+            log_obj.update(clean_extra)
 
         if record.exc_info:
-            log_obj["exception"] = self.formatException(record.exc_info)
+            log_obj["exception"] = redact_sensitive_text(self.formatException(record.exc_info))
 
         return json.dumps(log_obj)
 
